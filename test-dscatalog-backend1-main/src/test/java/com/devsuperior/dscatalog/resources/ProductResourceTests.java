@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.devsuperior.dscatalog.dto.ProductDTO;
 import com.devsuperior.dscatalog.services.ProductService;
+import com.devsuperior.dscatalog.services.exceptions.DatabaseException;
 import com.devsuperior.dscatalog.services.exceptions.ResourceNotFoundException;
 import com.devsuperior.dscatalog.tests.ProductFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +41,7 @@ public class ProductResourceTests {
 	private ProductDTO entityDto;
 	private Long existsId;
 	private Long nonExistsId;
+	private Long dependentId;
 
 	@MockBean
 	private ProductService service;
@@ -50,11 +52,15 @@ public class ProductResourceTests {
 		page = new PageImpl<>(List.of(entityDto));
 		existsId = 1L;
 		nonExistsId = 999L;
+		dependentId = 3L;
 		Mockito.when(service.findAllPaged(ArgumentMatchers.any())).thenReturn(page);
 		Mockito.when(service.findById(existsId)).thenReturn(entityDto);
 		Mockito.when(service.findById(nonExistsId)).thenThrow(ResourceNotFoundException.class);
 		Mockito.when(service.update(eq(existsId), any())).thenReturn(entityDto);
 		Mockito.when(service.update(eq(nonExistsId), any())).thenThrow(ResourceNotFoundException.class);
+		Mockito.doNothing().when(service).delete(existsId);
+		Mockito.doThrow(ResourceNotFoundException.class).when(service).delete(nonExistsId);
+		Mockito.doThrow(DatabaseException.class).when(service).delete(dependentId);
 	}
 
 	@Test
