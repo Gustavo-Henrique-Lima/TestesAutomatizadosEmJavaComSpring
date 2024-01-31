@@ -2,7 +2,9 @@ package com.devsuperior.dscatalog.resources;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -61,6 +63,7 @@ public class ProductResourceTests {
 		Mockito.doNothing().when(service).delete(existsId);
 		Mockito.doThrow(ResourceNotFoundException.class).when(service).delete(nonExistsId);
 		Mockito.doThrow(DatabaseException.class).when(service).delete(dependentId);
+		Mockito.when(service.insert(ArgumentMatchers.any())).thenReturn(entityDto);
 	}
 
 	@Test
@@ -100,5 +103,27 @@ public class ProductResourceTests {
 				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON));
 		results.andExpect(status().isNotFound());
 		results.andExpect(jsonPath("$.name").doesNotExist());
+	}
+
+	@Test
+	public void insertShouldReturnCreatedAndProductDTO() throws Exception {
+		String jsonBody = objectMapper.writeValueAsString(entityDto);
+		ResultActions results = mockMvc.perform(post("/products").content(jsonBody)
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON));
+		results.andExpect(status().isCreated());
+		results.andExpect(jsonPath("$.name").exists());
+		results.andExpect(jsonPath("$.description").exists());
+	}
+
+	@Test
+	public void deleteShouldReturnNoContentWhenIdExists() throws Exception {
+		ResultActions results = mockMvc.perform(delete("/products/{id}", existsId).accept(MediaType.APPLICATION_JSON));
+		results.andExpect(status().isNoContent());
+	}
+
+	@Test
+	public void deleteShoudThrowResourceNotFoundExceptionWhenIdDoesNotExist() throws Exception {
+		ResultActions results = mockMvc.perform(delete("/products/{id}", nonExistsId).accept(MediaType.APPLICATION_JSON));
+		results.andExpect(status().isNotFound());
 	}
 }
